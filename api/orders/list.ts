@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             include: {
                 items: {
                     include: {
-                        Product: true
+                        product: true // The name has been changed from 'Product' to 'product'
                     }
                 }
             }
