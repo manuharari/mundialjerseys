@@ -1,11 +1,15 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
 model Product {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
@@ -21,39 +25,41 @@ model Product {
   stockM    Int      @default(0)
   stockL    Int      @default(0)
   stockXL   Int      @default(0)
+  items     OrderItem[]
 }
 
 model Order {
-  id              String   @id
-  createdAt       DateTime @default(now())
-  amount          Int
-  currency        String   @default("MXN")
-  method          String
-  status          String   // created, paid, processing, shipped, delivered, refunded
-  email           String?
-  customerName    String?
-  address         String?
-  city            String?
-  postal          String?
-  country         String?
-  phone           String?
-  providerId      String?  // Mercado Pago payment ID
-  labelId         String?  // shipping label
+  id            String    @id
+  createdAt     DateTime  @default(now())
+  amount        Int
+  currency      String    @default("MXN")
+  method        String
+  status        String    // created, paid, processing, shipped, delivered, refunded
+  email         String?
+  customerName  String?
+  address       String?
+  city          String?
+  postal        String?
+  country       String?
+  phone         String?
+  providerId    String?   // Mercado Pago payment ID
+  labelId       String?   // shipping label
   shippingCarrier String?
-  trackingNumber  String?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  notes           String?
-  items           OrderItem[]
+  trackingNumber String?
+  shippedAt     DateTime?
+  deliveredAt   DateTime?
+  notes         String?
+  items         OrderItem[]
 }
 
 model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String?
-  name      String
-  size      String?
-  quantity  Int      @default(1)
-  price     Int
-  Order     Order    @relation(fields: [orderId], references: [id])
+  id          String    @id @default(cuid())
+  orderId     String
+  productId   String?
+  name        String
+  size        String?
+  quantity    Int       @default(1)
+  price       Int
+  Order       Order     @relation(fields: [orderId], references: [id])
+  product     Product?  @relation(fields: [productId], references: [id])
 }
