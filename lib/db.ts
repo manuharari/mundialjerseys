@@ -10,7 +10,10 @@ declare global {
 
 // Check if there is an existing global PrismaClient instance.
 // If there is, use it. If not, create a new one.
-export const prisma = global.prisma || new PrismaClient();
+export const prisma = global.prisma || new PrismaClient({
+  // Log all database queries in development to help with debugging.
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
 
 // In development, we store the new PrismaClient instance on the global object.
 // This prevents multiple connections to the database.
