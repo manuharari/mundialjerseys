@@ -16,7 +16,6 @@ export default function Admin({ products }: { products:any[] }){
   }
   return (
     <div>
-      <Header />
       <main className="max-w-7xl mx-auto px-4 py-10 space-y-8">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         <form onSubmit={create} className="bg-white rounded-2xl p-4 shadow grid md:grid-cols-3 gap-4">
