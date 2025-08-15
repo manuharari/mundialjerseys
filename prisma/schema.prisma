@@ -1,0 +1,59 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+model Product {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  title     String
+  title_en  String?
+  team      String
+  price     Int      // in cents
+  sizes     String   // CSV: XS,S,M,L,XL
+  image     String?
+  sku       String   @unique
+  stockXS   Int      @default(0)
+  stockS    Int      @default(0)
+  stockM    Int      @default(0)
+  stockL    Int      @default(0)
+  stockXL   Int      @default(0)
+}
+
+model Order {
+  id              String   @id
+  createdAt       DateTime @default(now())
+  amount          Int
+  currency        String   @default("MXN")
+  method          String
+  status          String   // created, paid, processing, shipped, delivered, refunded
+  email           String?
+  customerName    String?
+  address         String?
+  city            String?
+  postal          String?
+  country         String?
+  phone           String?
+  providerId      String?  // Mercado Pago payment ID
+  labelId         String?  // shipping label
+  shippingCarrier String?
+  trackingNumber  String?
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  notes           String?
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String?
+  name      String
+  size      String?
+  quantity  Int      @default(1)
+  price     Int
+  Order     Order    @relation(fields: [orderId], references: [id])
+}
