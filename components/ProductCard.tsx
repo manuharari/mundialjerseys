@@ -58,3 +58,4 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
 };
 
 export default ProductCard;
+
