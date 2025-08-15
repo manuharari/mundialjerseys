@@ -1,81 +1,147 @@
-
-import Header from '../components/Header';
-import { prisma } from '../lib/db';
+import Header from '@/components/Header'; // The import path has been updated
+import { prisma } from '@/lib/db';
 import { useState } from 'react';
+import type { NextPage } from 'next';
+import Head from 'next/head';
 
-export async function getServerSideProps(){
-  const orders = await prisma.order.findMany({ include: { items: true }, orderBy: { createdAt: 'desc' } });
-  return { props: { orders: JSON.parse(JSON.stringify(orders)) } }
+interface Order {
+  id: string;
+  createdAt: Date;
+  customerName: string;
+  email: string;
+  status: string;
+  total: number;
+  trackingNumber?: string | null;
+  shippingCarrier?: string | null;
+  shippedAt?: Date | null;
+  items: {
+    id: string;
+    productId: string;
+    orderId: string;
+    quantity: number;
+    size: string;
+    product: {
+      id: string;
+      title: string;
+      team: string;
+      price: number;
+    };
+  }[];
 }
 
-export default function Orders({ orders }: { orders:any[] }){
+interface OrdersProps {
+  initialOrders: Order[];
+}
+
+const OrdersPage: NextPage<OrdersProps> = ({ initialOrders }) => {
+  const [orders, setOrders] = useState(initialOrders);
+
+  // This function would be called when you want to update an order
+  const handleMarkShipped = async (orderId: string, trackingNumber: string, shippingCarrier: string) => {
+    try {
+      const response = await fetch('/api/orders/mark-shipped', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId, trackingNumber, shippingCarrier }),
+      });
+
+      if (response.ok) {
+        // You might want to refresh the orders list here
+        // or update the state with the new order data
+        const updatedOrder = await response.json();
+        setOrders(prevOrders => prevOrders.map(order =>
+          order.id === orderId ? { ...order, ...updatedOrder.order } : order
+        ));
+      } else {
+        console.error('Failed to mark order as shipped');
+      }
+    } catch (error) {
+      console.error('Error marking order as shipped:', error);
+    }
+  };
+
   return (
-    <div>
+    <div className="bg-white min-h-screen">
+      <Head>
+        <title>Orders Dashboard</title>
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
       <Header />
-      <main className="max-w-7xl mx-auto px-4 py-10 space-y-6">
-        <h1 className="text-2xl font-bold">Pedidos</h1>
-        <table className="w-full text-sm bg-white rounded-2xl overflow-hidden shadow">
-          <thead className="bg-neutral-100 text-left">
-            <tr><th className="p-2">ID</th><th>Monto</th><th>Estado</th><th>Cliente</th><th>Tracking</th><th>Fecha</th></tr>
-          </thead>
-          <tbody>
-            {orders.map(o=> (
-              <tr key={o.id} className="border-t">
-                <td className="p-2">{o.id}</td>
-                <td className="p-2">${(o.amount/100).toFixed(2)} {o.currency}</td>
-                <td className="p-2">{o.status}</td>
-                <td className="p-2">{o.email || '-'}</td>
-                <td className="p-2">{o.shippingCarrier||'-'} {o.trackingNumber||''}</td>
-                <td className="p-2">{new Date(o.createdAt).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <ShipForm />
+
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-4xl font-bold text-center text-gray-800 mb-8">
+          Orders Dashboard
+        </h1>
+
+        <div className="space-y-6">
+          {orders.map((order) => (
+            <div key={order.id} className="bg-gray-100 p-6 rounded-lg shadow-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Order #{order.id}</h2>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  order.status === 'pending' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'
+                }`}>
+                  {order.status}
+                </span>
+              </div>
+              <p><strong>Customer:</strong> {order.customerName}</p>
+              <p><strong>Email:</strong> {order.email}</p>
+              <p><strong>Total:</strong> ${(order.total / 100).toFixed(2)}</p>
+              
+              {order.status === 'shipped' && (
+                <>
+                  <p><strong>Tracking Number:</strong> {order.trackingNumber}</p>
+                  <p><strong>Carrier:</strong> {order.shippingCarrier}</p>
+                </>
+              )}
+
+              <h3 className="font-semibold mt-4 mb-2">Items:</h3>
+              <ul className="list-disc list-inside">
+                {order.items.map((item) => (
+                  <li key={item.id} className="text-gray-700">
+                    {item.quantity} x {item.product.title} ({item.size})
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </main>
     </div>
-  )
-}
-
-function ShipForm(){
-  const [id, setId] = useState('');
-  const [carrier, setCarrier] = useState('Skydropx');
-  const [tracking, setTracking] = useState('');
-  const [email, setEmail] = useState('');
-  const [notes, setNotes] = useState('');
-
-  async function markShipped(e:any){
-    e.preventDefault();
-    const res = await fetch('/api/orders/mark-shipped', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json' },
-      body: JSON.stringify({ id, carrier, tracking, email, notes })
-    });
-    const data = await res.json();
-    if (data?.ok){ alert('Pedido marcado como enviado'); location.reload(); }
-    else alert('Error');
-  }
-
-  return (
-    <form onSubmit={markShipped} className="bg-white rounded-2xl p-4 shadow grid md:grid-cols-6 gap-3 text-sm">
-      <label className="md:col-span-2">ID de Orden
-        <input className="mt-1 w-full px-3 py-2 rounded-xl border" value={id} onChange={e=>setId(e.target.value)} placeholder="ORD-..." />
-      </label>
-      <label>Paquetería
-        <input className="mt-1 w-full px-3 py-2 rounded-xl border" value={carrier} onChange={e=>setCarrier(e.target.value)} />
-      </label>
-      <label>Guía
-        <input className="mt-1 w-full px-3 py-2 rounded-xl border" value={tracking} onChange={e=>setTracking(e.target.value)} />
-      </label>
-      <label>Correo cliente
-        <input className="mt-1 w-full px-3 py-2 rounded-xl border" value={email} onChange={e=>setEmail(e.target.value)} placeholder="cliente@correo.com" />
-      </label>
-      <label className="md:col-span-6">Notas
-        <input className="mt-1 w-full px-3 py-2 rounded-xl border" value={notes} onChange={e=>setNotes(e.target.value)} />
-      </label>
-      <div className="md:col-span-6">
-        <button className="px-4 py-2 rounded-2xl bg-black text-white">Marcar como enviado + email</button>
-      </div>
-    </form>
   );
+};
+
+export async function getServerSideProps() {
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        },
+      },
+    });
+
+    return {
+      props: {
+        initialOrders: JSON.parse(JSON.stringify(orders)),
+      },
+    };
+  } catch (e) {
+    console.error(e);
+    return {
+      props: {
+        initialOrders: [],
+      },
+    };
+  }
 }
+
+export default OrdersPage;
