@@ -1,5 +1,4 @@
-
-import { prisma } from '../lib/db';
+import { prisma } from '@/lib/db';
 import { useState } from 'react';
 
 export async function getServerSideProps(){
