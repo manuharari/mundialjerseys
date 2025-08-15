@@ -16,9 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // If the event is related to a payment, you can update your database
     if (event.type === 'payment') {
       const paymentId = event.data.id;
-      // First, find the order using the paymentId
+      // First, find the order using the providerId (which corresponds to the Mercado Pago payment ID)
       const order = await prisma.order.findFirst({
-        where: { paymentId: paymentId },
+        where: { providerId: paymentId },
       });
 
       // If an order is found, update its status
