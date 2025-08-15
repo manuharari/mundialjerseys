@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/db'; // The import path has been updated
+import { prisma } from '@/lib/db';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Here you'd verify Mercado Pago event and update order
@@ -16,12 +16,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // If the event is related to a payment, you can update your database
     if (event.type === 'payment') {
       const paymentId = event.data.id;
-      // Find the order in your database and update its status
-      await prisma.order.update({
+      // First, find the order using the paymentId
+      const order = await prisma.order.findFirst({
         where: { paymentId: paymentId },
-        data: { status: 'paid' },
       });
-      console.log(`Order with payment ID ${paymentId} updated to paid.`);
+
+      // If an order is found, update its status
+      if (order) {
+        await prisma.order.update({
+          where: { id: order.id }, // Now we use the unique 'id' to update
+          data: { status: 'paid' },
+        });
+        console.log(`Order with payment ID ${paymentId} updated to paid.`);
+      } else {
+        console.log(`No order found for payment ID ${paymentId}.`);
+      }
     }
 
     res.status(200).json({ message: 'Webhook received successfully' });
